@@ -1,0 +1,6 @@
+/dataset/
+/data/
+/.venv/
+__pycache__/
+outputs/models/best_vit_model_amp.pth
+outputs/models/vit_mae_cataract_

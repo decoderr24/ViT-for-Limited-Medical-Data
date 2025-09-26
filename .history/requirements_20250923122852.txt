@@ -1,0 +1,10 @@
+torch
+torchvision
+torchaudio
+timm
+scikit-learn
+opencv-python
+matplotlib
+seaborn
+albumentations
+wandb
