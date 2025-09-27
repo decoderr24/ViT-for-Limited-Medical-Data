@@ -44,7 +44,7 @@ def get_dataloaders(data_dir, batch_size, image_size):
         valid_dataset, 
         batch_size=batch_size, 
         shuffle=False, 
-        num_workers=4, # Sesuaikan dengan kemampuan CPU
+        num_workers=2, # Sesuaikan dengan kemampuan CPU
         pin_memory=True
     )
 

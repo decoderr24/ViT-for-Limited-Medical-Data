@@ -13,7 +13,7 @@ def create_model(num_classes):
         'vit_base_patch16_224.mae', 
         pretrained=True,
         num_classes=num_classes, # Langsung set jumlah kelas di sini
-        drop_rate=0.4 # Menambahkan dropout dengan rate 30%
+        drop_rate=0.5 # Menambahkan dropout dengan rate 30%
     )
     
     print(f"Model ViT-MAE berhasil dibuat dengan {num_classes} kelas output dan dropout rate 0.3.")

@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 def get_transforms(image_size):
     """
     Mendefinisikan pipeline augmentasi dan transformasi data.
-    Versi ini menggunakan augmentasi yang kuat untuk mengurangi overfitting.
+    Versi ini menggunakan augmentasi yang lebih kuat untuk mengurangi overfitting.
     """
     # Augmentasi agresif untuk data training
     train_transform = transforms.Compose([
@@ -39,22 +39,24 @@ def get_dataloaders(data_dir, batch_size, image_size):
     train_dataset = datasets.ImageFolder(f"{data_dir}/train", transform=train_transform)
     valid_dataset = datasets.ImageFolder(f"{data_dir}/valid", transform=valid_transform)
     
-    # DataLoader untuk validasi tetap standar
+    # Turunkan num_workers jika RAM Anda terbatas
+    train_loader = DataLoader(
+        train_dataset, 
+        batch_size=batch_size, 
+        shuffle=True, 
+        num_workers=6,
+        pin_memory=True
+    )
     valid_loader = DataLoader(
         valid_dataset, 
         batch_size=batch_size, 
         shuffle=False, 
-        num_workers=4, # Sesuaikan dengan kemampuan CPU
+        num_workers=6,
         pin_memory=True
     )
-
-    # DataLoader untuk training tidak dibuat di sini lagi,
-    # karena akan dibuat di train.py menggunakan sampler.
-    # Kita hanya perlu mengembalikan dataset-nya.
     
     dataset_classes = train_dataset.classes
     
     print(f"Data berhasil dimuat. Ditemukan {len(dataset_classes)} kelas: {dataset_classes}")
     
-    # Mengembalikan dataset latih agar bisa dibuat sampler-nya di train.py
-    return None, valid_loader, dataset_classes, train_dataset
+    return train_loader, valid_loader, train_dataset.classes, train_dataset

@@ -1,4 +1,4 @@
-# src/train.py (Versi Final dengan Balanced Sampler & Focal Loss)
+# src/train.py (Versi dengan Automatic Mixed Precision)
 
 import torch
 import torch.nn as nn
@@ -6,29 +6,36 @@ import torch.optim as optim
 from tqdm import tqdm
 import numpy as np
 from sklearn.metrics import classification_report
-from torch.utils.data import DataLoader, WeightedRandomSampler
-from utils import save_model, save_plots, save_confusion_matrix, FocalLoss
 
 # Impor dari file lain dalam proyek
 from model import create_model
 from dataset import get_dataloaders
-from utils import save_model, save_plots, save_confusion_matrix, FocalLoss # Pastikan FocalLoss diimpor
+from utils import save_model, save_plots, save_confusion_matrix
+from torch.utils.data import WeightedRandomSampler
+
 
 # --- 1. KONFIGURASI & HYPERPARAMETERS ---
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 DATA_DIR = 'data'
 OUTPUT_DIR = 'outputs/models'
 IMAGE_SIZE = 224
-BATCH_SIZE = 8
+BATCH_SIZE = 16
 EPOCHS = 50
-LEARNING_RATE_HEAD = 1e-3
-LEARNING_RATE_FINETUNE = 3e-5
+LEARNING_RATE_HEAD = 3e-3
+LEARNING_RATE_FINETUNE = 5e-5
 WEIGHT_DECAY = 0.01
-MODEL_NAME = 'best_vit_model_balanced.pth'
+MODEL_NAME = 'best_vit_model_amp.pth'
 NUM_CLASSES = 4
 
-# --- 2. FUNGSI TRAINING & VALIDASI (Tidak ada perubahan di sini) ---
-def train_one_epoch(model, dataloader, optimizer, criterion, device):
+# --- 2. FUNGSI UNTUK MENGATASI CLASS IMBALANCE ---
+def calculate_class_weights(dataset):
+    class_counts = np.bincount(dataset.targets)
+    class_counts = class_counts[class_counts > 0] # Hanya gunakan kelas yang ada
+    class_weights = 1. / np.sqrt(class_counts)
+    return torch.tensor(class_weights, dtype=torch.float).to(DEVICE)
+
+# --- 3. FUNGSI TRAINING & VALIDASI ---
+def train_one_epoch(model, dataloader, optimizer, criterion, device, scaler):
     model.train()
     running_loss = 0.0
     correct_predictions = 0
@@ -37,11 +44,22 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device):
     for images, labels in tqdm(dataloader, total=len(dataloader), desc="Training"):
         images, labels = images.to(device), labels.to(device)
         optimizer.zero_grad()
-        outputs = model(images)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
-        
+
+        # Gunakan autocast HANYA jika di CUDA
+        if device == 'cuda':
+            with torch.cuda.amp.autocast():
+                outputs = model(images)
+                loss = criterion(outputs, labels)
+            
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+        else: # Jika di CPU (atau AMD GPU), jalankan mode normal
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
         running_loss += loss.item() * images.size(0)
         _, preds = torch.max(outputs, 1)
         correct_predictions += torch.sum(preds == labels.data)
@@ -80,39 +98,24 @@ def validate_one_epoch(model, dataloader, criterion, device):
     
     return epoch_loss, epoch_acc, all_labels, all_preds
 
-# --- 3. SCRIPT UTAMA ---
+# --- 4. SCRIPT UTAMA ---
 if __name__ == '__main__':
-    # A. Persiapan Data & Implementasi WeightedRandomSampler
-    # Panggil get_dataloaders untuk mendapatkan dataset latih
-    _, valid_loader, classes, train_dataset = get_dataloaders(DATA_DIR, BATCH_SIZE, IMAGE_SIZE)
-
-    print("\n--- Menyiapkan Balanced Sampler untuk Training ---")
-    # Hitung bobot untuk setiap sampel (bukan per kelas)
-    class_counts = np.bincount(train_dataset.targets)
-    class_weights = 1. / torch.tensor(class_counts, dtype=torch.float)
-    sample_weights = class_weights[train_dataset.targets]
-    criterion = FocalLoss()
-    # Buat Sampler yang akan menyeimbangkan pengambilan data
-    sampler = WeightedRandomSampler(weights=sample_weights, num_samples=len(sample_weights), replacement=True)
-
-    # Buat DataLoader training BARU yang menggunakan sampler
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=BATCH_SIZE,
-        sampler=sampler,
-        num_workers=4 # Sesuaikan dengan kemampuan CPU Anda
-    )
-    print("Balanced Sampler berhasil dibuat. Setiap batch training sekarang akan seimbang.")
+    train_loader_unbalanced, valid_loader, classes, train_dataset = get_dataloaders(DATA_DIR, BATCH_SIZE, IMAGE_SIZE)
     
-    # B. Arsitektur & Pretraining
     model = create_model(num_classes=NUM_CLASSES).to(DEVICE)
+    # Hitung bobot untuk setiap sampel
+    class_counts = np.bincount(train_dataset.targets)
+class_weights = 1. / torch.tensor(class_counts, dtype=torch.float)
+sample_weights = class_weights[train_dataset.targets]
+    class_weights = calculate_class_weights(train_loader.dataset)
+    print(f"Class weights untuk mengatasi imbalance: {class_weights}")
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
     
-    # C. Menggunakan Focal Loss
-    # Ganti dari CrossEntropyLoss menjadi FocalLoss
-    criterion = FocalLoss().to(DEVICE)
-    print("Menggunakan Focal Loss untuk fokus pada sampel yang sulit.")
+    # Inisialisasi GradScaler HANYA jika di CUDA
+    scaler = torch.cuda.amp.GradScaler() if DEVICE == 'cuda' else None
+    if scaler:
+        print("Mixed Precision (AMP) diaktifkan.")
     
-    # D. Strategi Fine-tune
     # --- TAHAP 1: FREEZE BACKBONE, LATIH HEAD ---
     print("\n--- TAHAP 1: Melatih Classifier Head ---")
     for param in model.parameters():
@@ -124,7 +127,8 @@ if __name__ == '__main__':
     
     for epoch in range(5):
         print(f"Epoch Head {epoch+1}/5")
-        train_one_epoch(model, train_loader, optimizer_head, criterion, DEVICE)
+        # Saat training, oper scaler. Fungsi akan menanganinya.
+        train_one_epoch(model, train_loader, optimizer_head, criterion, DEVICE, scaler)
         validate_one_epoch(model, valid_loader, criterion, DEVICE)
 
     # --- TAHAP 2: UNFREEZE & FINE-TUNE SELURUH MODEL ---
@@ -142,7 +146,7 @@ if __name__ == '__main__':
     for epoch in range(EPOCHS):
         print(f"Epoch {epoch+1}/{EPOCHS}")
         
-        train_loss, train_acc = train_one_epoch(model, train_loader, optimizer_finetune, criterion, DEVICE)
+        train_loss, train_acc = train_one_epoch(model, train_loader, optimizer_finetune, criterion, DEVICE, scaler)
         valid_loss, valid_acc, valid_labels, valid_preds = validate_one_epoch(model, valid_loader, criterion, DEVICE)
         
         scheduler.step()
@@ -162,7 +166,7 @@ if __name__ == '__main__':
             best_labels = valid_labels
             best_preds = valid_preds
             
-    # E. Evaluasi & Reporting
+    # --- F. EVALUASI & REPORTING ---
     save_plots(history['train_acc'], history['valid_acc'], history['train_loss'], history['valid_loss'], OUTPUT_DIR)
     
     if best_labels and best_preds:

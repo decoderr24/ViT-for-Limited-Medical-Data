@@ -16,11 +16,11 @@ from utils import save_model, save_plots, save_confusion_matrix, FocalLoss # Pas
 
 # --- 1. KONFIGURASI & HYPERPARAMETERS ---
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-DATA_DIR = 'data'
-OUTPUT_DIR = 'outputs/models'
+DATA_DIR = '../data'
+OUTPUT_DIR = '../outputs'
 IMAGE_SIZE = 224
-BATCH_SIZE = 8
-EPOCHS = 50
+BATCH_SIZE = 16
+EPOCHS = 100
 LEARNING_RATE_HEAD = 1e-3
 LEARNING_RATE_FINETUNE = 3e-5
 WEIGHT_DECAY = 0.01
@@ -91,7 +91,7 @@ if __name__ == '__main__':
     class_counts = np.bincount(train_dataset.targets)
     class_weights = 1. / torch.tensor(class_counts, dtype=torch.float)
     sample_weights = class_weights[train_dataset.targets]
-    criterion = FocalLoss()
+
     # Buat Sampler yang akan menyeimbangkan pengambilan data
     sampler = WeightedRandomSampler(weights=sample_weights, num_samples=len(sample_weights), replacement=True)
 

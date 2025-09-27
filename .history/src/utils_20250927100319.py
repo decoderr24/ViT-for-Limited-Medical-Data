@@ -1,16 +1,32 @@
 # src/utils.py
 
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import os
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
+import torch.nn.functional as F
 
 # Atur style plot agar terlihat lebih bagus
 plt.style.use('ggplot')
+class FocalLoss(nn.Module):
+    def __init__(self, alpha=1, gamma=2, reduction='mean'):
+        super(FocalLoss, self).__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.reduction = reduction
 
+    def forward(self, inputs, targets):
+        ce_loss = F.cross_entropy(inputs, targets, reduction='none')
+        pt = torch.exp(-ce_loss)
+        focal_loss = self.alpha * (1-pt)**self.gamma * ce_loss
+        if self.reduction == 'mean':
+            return focal_loss.mean()
+        elif self.reduction == 'sum':
+            return focal_loss.sum()
+        else:
+            return focal_loss
+        
 def save_model(epochs, model, optimizer, criterion, model_path):
     """
     Fungsi untuk menyimpan checkpoint model.
@@ -68,26 +84,3 @@ def save_confusion_matrix(y_true, y_pred, class_names, save_path):
     plt.title('Confusion Matrix of Best Validation Model')
     plt.savefig(save_path)
     print(f"Confusion matrix disimpan di {save_path}")
-
-class FocalLoss(nn.Module):
-    """
-    Implementasi Focal Loss untuk menangani class imbalance
-    dan fokus pada sampel yang sulit.
-    """
-    def __init__(self, alpha=1, gamma=2, reduction='mean'):
-        super(FocalLoss, self).__init__()
-        self.alpha = alpha
-        self.gamma = gamma
-        self.reduction = reduction
-
-    def forward(self, inputs, targets):
-        ce_loss = F.cross_entropy(inputs, targets, reduction='none')
-        pt = torch.exp(-ce_loss)
-        focal_loss = self.alpha * (1-pt)**self.gamma * ce_loss
-        
-        if self.reduction == 'mean':
-            return focal_loss.mean()
-        elif self.reduction == 'sum':
-            return focal_loss.sum()
-        else:
-            return focal_loss
