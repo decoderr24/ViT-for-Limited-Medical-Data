@@ -6,4 +6,4 @@ outputs/models/best_vit_model_amp.pth
 outputs/models/vit_mae_cataract_classifier.pth
 logs/
 outputs/models/best_vit_model_balanced.pth
-outputs/models/best_swin_model_final.pth
+outputs

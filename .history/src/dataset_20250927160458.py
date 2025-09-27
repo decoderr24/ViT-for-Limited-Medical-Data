@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 def get_transforms(image_size):
     """
     Mendefinisikan pipeline augmentasi dan transformasi data.
+    Versi ini menggunakan augmentasi yang kuat untuk mengurangi overfitting.
     """
     # Augmentasi agresif untuk data training
     train_transform = transforms.Compose([
@@ -18,6 +19,9 @@ def get_transforms(image_size):
         transforms.RandomResizedCrop(image_size, scale=(0.8, 1.0), ratio=(0.9, 1.1)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        transforms.RandomAdjustSharpness(sharpness_factor=2, p=0.3),
+        transforms.RandomAutocontrast(p=0.3),
+
     ])
     
     # Untuk data validasi, tidak ada augmentasi
@@ -29,7 +33,7 @@ def get_transforms(image_size):
     
     return train_transform, valid_transform
 
-def get_dataloaders(data_dir, batch_size, image_size, num_workers):
+def get_dataloaders(data_dir, batch_size, image_size):
     """
     Membuat DataLoaders untuk training dan validasi.
     """
@@ -38,13 +42,18 @@ def get_dataloaders(data_dir, batch_size, image_size, num_workers):
     train_dataset = datasets.ImageFolder(f"{data_dir}/train", transform=train_transform)
     valid_dataset = datasets.ImageFolder(f"{data_dir}/valid", transform=valid_transform)
     
+    # DataLoader untuk validasi tetap standar
     valid_loader = DataLoader(
         valid_dataset, 
         batch_size=batch_size, 
         shuffle=False, 
-        num_workers=num_workers,
+        num_workers=4, # Sesuaikan dengan kemampuan CPU
         pin_memory=True
     )
+
+    # DataLoader untuk training tidak dibuat di sini lagi,
+    # karena akan dibuat di train.py menggunakan sampler.
+    # Kita hanya perlu mengembalikan dataset-nya.
     
     dataset_classes = train_dataset.classes
     

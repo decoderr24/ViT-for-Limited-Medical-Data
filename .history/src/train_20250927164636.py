@@ -14,10 +14,10 @@ from utils import save_model, save_plots, save_confusion_matrix, FocalLoss
 
 # --- 1. KONFIGURASI & HYPERPARAMETERS ---
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-DATA_DIR = 'data'
-OUTPUT_DIR = 'outputs/models'
+DATA_DIR = '../data'
+OUTPUT_DIR = '../outputs'
 IMAGE_SIZE = 224
-BATCH_SIZE = 16
+BATCH_SIZE = 8
 NUM_WORKERS = 4
 EPOCHS = 50
 LEARNING_RATE_HEAD = 1e-3

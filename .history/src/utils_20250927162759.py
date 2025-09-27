@@ -8,6 +8,7 @@ import os
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
 
+# Atur style plot agar terlihat lebih bagus
 plt.style.use('ggplot')
 
 def save_model(epochs, model, optimizer, criterion, model_path):
@@ -25,11 +26,12 @@ def save_model(epochs, model, optimizer, criterion, model_path):
 
 def save_plots(train_acc, valid_acc, train_loss, valid_loss, plot_path):
     """
-    Fungsi untuk menyimpan plot akurasi dan loss.
+    Fungsi untuk menyimpan plot akurasi dan loss selama training.
     """
     print(f"Menyimpan plot ke {plot_path}")
     os.makedirs(os.path.dirname(plot_path), exist_ok=True)
     
+    # Plot Akurasi
     plt.figure(figsize=(10, 7))
     plt.plot(train_acc, color='green', linestyle='-', label='train accuracy')
     plt.plot(valid_acc, color='blue', linestyle='-', label='validation accuracy')
@@ -38,6 +40,7 @@ def save_plots(train_acc, valid_acc, train_loss, valid_loss, plot_path):
     plt.legend()
     plt.savefig(f"{plot_path}/accuracy.png")
     
+    # Plot Loss
     plt.figure(figsize=(10, 7))
     plt.plot(train_loss, color='orange', linestyle='-', label='train loss')
     plt.plot(valid_loss, color='red', linestyle='-', label='validation loss')
@@ -48,7 +51,7 @@ def save_plots(train_acc, valid_acc, train_loss, valid_loss, plot_path):
 
 def save_confusion_matrix(y_true, y_pred, class_names, save_path):
     """
-    Menyimpan plot confusion matrix.
+    Menyimpan plot confusion matrix untuk analisis kesalahan model.
     """
     cm = confusion_matrix(y_true, y_pred)
     plt.figure(figsize=(10, 8))
@@ -67,23 +70,28 @@ def save_confusion_matrix(y_true, y_pred, class_names, save_path):
     print(f"Confusion matrix disimpan di {save_path}")
 
 class FocalLoss(nn.Module):
-    """
-    Implementasi Focal Loss.
-    """
-    def __init__(self, alpha=1, gamma=2, reduction='mean'):
+    def __init__(self, alpha=None, gamma=2, reduction="mean"):
         super(FocalLoss, self).__init__()
-        self.alpha = alpha
+        if alpha is not None:
+            self.alpha = torch.tensor(alpha, dtype=torch.float32)
+        else:
+            self.alpha = None
         self.gamma = gamma
         self.reduction = reduction
 
     def forward(self, inputs, targets):
-        ce_loss = F.cross_entropy(inputs, targets, reduction='none')
+        ce_loss = F.cross_entropy(inputs, targets, reduction="none")
         pt = torch.exp(-ce_loss)
-        focal_loss = self.alpha * (1-pt)**self.gamma * ce_loss
-        
-        if self.reduction == 'mean':
-            return focal_loss.mean()
-        elif self.reduction == 'sum':
-            return focal_loss.sum()
+
+        if self.alpha is not None:
+            # ambil alpha sesuai kelas di targets
+            at = self.alpha.to(inputs.device)[targets]
+            focal_loss = at * (1 - pt) ** self.gamma * ce_loss
         else:
-            return focal_loss
+            focal_loss = (1 - pt) ** self.gamma * ce_loss
+
+        if self.reduction == "mean":
+            return focal_loss.mean()
+        elif self.reduction == "sum":
+            return focal_loss.sum()
+        return focal_loss
