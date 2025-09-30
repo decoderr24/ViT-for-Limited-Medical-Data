@@ -20,7 +20,7 @@ DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 DATA_DIR = 'data'
 OUTPUT_DIR = 'outputs/new_model'
 IMAGE_SIZE = 384      # Coba naikkan ke 384 jika VRAM cukup, jangan lupa turunkan BATCH_SIZE
-BATCH_SIZE = 8        # Ukuran batch yang aman untuk VRAM 4GB
+BATCH_SIZE = 4        # Ukuran batch yang aman untuk VRAM 4GB
 NUM_WORKERS = 4       # Optimal untuk CPU 6-core
 EPOCHS = 50
 LEARNING_RATE_HEAD = 1e-3
@@ -105,7 +105,7 @@ if __name__ == '__main__':
     sampler = WeightedRandomSampler(weights=sample_weights, num_samples=len(sample_weights), replacement=True)
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, sampler=sampler, num_workers=NUM_WORKERS)
     
-    model = create_model(num_classes=NUM_CLASSES, image_size=IMAGE_SIZE).to(DEVICE)
+    model = create_model(num_classes=NUM_CLASSES).to(DEVICE)
     
     # Menggunakan CrossEntropyLoss dengan Label Smoothing untuk regularisasi
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1).to(DEVICE)

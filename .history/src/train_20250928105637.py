@@ -1,4 +1,4 @@
-# src/train.py (dengan Test-Time Augmentation)
+# src/train.py (Versi Final dengan Test-Time Augmentation)
 
 import torch
 import torch.nn as nn
@@ -105,7 +105,7 @@ if __name__ == '__main__':
     sampler = WeightedRandomSampler(weights=sample_weights, num_samples=len(sample_weights), replacement=True)
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, sampler=sampler, num_workers=NUM_WORKERS)
     
-    model = create_model(num_classes=NUM_CLASSES, image_size=IMAGE_SIZE).to(DEVICE)
+    model = create_model(num_classes=NUM_CLASSES).to(DEVICE)
     
     # Menggunakan CrossEntropyLoss dengan Label Smoothing untuk regularisasi
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1).to(DEVICE)

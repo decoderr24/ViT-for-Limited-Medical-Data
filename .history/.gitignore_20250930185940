@@ -7,4 +7,4 @@ outputs/models/vit_mae_cataract_classifier.pth
 logs/
 outputs/models/best_vit_model_balanced.pth
 outputs/models/best_swin_model_final.pth
-outputs/new_model/best_model_final_TTA.pth
+outputs/new_model/best.pth

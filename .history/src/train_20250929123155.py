@@ -19,7 +19,7 @@ from utils import save_model, save_plots, save_confusion_matrix
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 DATA_DIR = 'data'
 OUTPUT_DIR = 'outputs/new_model'
-IMAGE_SIZE = 384      # Coba naikkan ke 384 jika VRAM cukup, jangan lupa turunkan BATCH_SIZE
+IMAGE_SIZE = 224      # Coba naikkan ke 384 jika VRAM cukup, jangan lupa turunkan BATCH_SIZE
 BATCH_SIZE = 8        # Ukuran batch yang aman untuk VRAM 4GB
 NUM_WORKERS = 4       # Optimal untuk CPU 6-core
 EPOCHS = 50
