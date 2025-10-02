@@ -18,13 +18,13 @@ from utils import save_model, save_plots, save_confusion_matrix, FocalLoss
 # --- 1. KONFIGURASI & HYPERPARAMETERS ---
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 DATA_DIR = 'data'
-OUTPUT_DIR = 'outputs/new_model2'
-IMAGE_SIZE = 224      
-BATCH_SIZE = 16        
+OUTPUT_DIR = 'outputs/new_model'
+IMAGE_SIZE = 384      
+BATCH_SIZE = 8        
 NUM_WORKERS = 4       
-EPOCHS = 75
+EPOCHS = 50
 LEARNING_RATE_HEAD = 1e-3
-LEARNING_RATE_FINETUNE = 2e-5
+LEARNING_RATE_FINETUNE = 3e-5
 WEIGHT_DECAY = 0.05   
 MODEL_NAME = 'best_model_final_TTA_Focal.pth'
 NUM_CLASSES = 4
@@ -109,8 +109,9 @@ if __name__ == '__main__':
 
     model = create_model(num_classes=NUM_CLASSES, image_size=IMAGE_SIZE).to(DEVICE)
 
-    criterion = nn.CrossEntropyLoss(label_smoothing=0.1).to(DEVICE)
-    print("Menggunakan CrossEntropyLoss dengan Label Smoothing (0.1).")
+    # Gunakan FocalLoss (lebih tahan imbalance)
+    criterion = FocalLoss(alpha=1, gamma=2).to(DEVICE)
+    print("Menggunakan FocalLoss (alpha=1, gamma=2).")
 
     # --- TAHAP 1: FREEZE BACKBONE, LATIH HEAD ---
     print("\n--- TAHAP 1: Melatih Classifier Head ---")
@@ -129,8 +130,8 @@ if __name__ == '__main__':
     for param in model.parameters():
         param.requires_grad = True
     optimizer_finetune = optim.AdamW(model.parameters(), lr=LEARNING_RATE_FINETUNE, weight_decay=WEIGHT_DECAY)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer_finetune, T_max=EPOCHS, eta_min=1e-7)
-    print("Menggunakan scheduler CosineAnnealingLR.")
+    scheduler = ReduceLROnPlateau(optimizer_finetune, mode='min', factor=0.2, patience=5)
+    print("Menggunakan scheduler ReduceLROnPlateau + EarlyStopping.")
 
     history = {'train_loss': [], 'train_acc': [], 'valid_loss': [], 'valid_acc': []}
     best_valid_acc = 0.0

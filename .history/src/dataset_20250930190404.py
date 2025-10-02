@@ -9,7 +9,7 @@ def get_dataloaders(data_dir, batch_size=32, image_size=224, num_workers=2):
     train_transform = transforms.Compose([
         transforms.RandomHorizontalFlip(),
         transforms.RandomVerticalFlip(),
-        transforms.RandomRotation(degrees=(20)),
+        transforms.RandomRotation(degrees=(-45, 45)),
         transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
         transforms.RandomResizedCrop(image_size, scale=(0.8, 1.0)),
         transforms.ToTensor(),

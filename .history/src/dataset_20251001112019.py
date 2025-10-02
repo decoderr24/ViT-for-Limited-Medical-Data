@@ -7,14 +7,14 @@ from collections import Counter
 def get_dataloaders(data_dir, batch_size=32, image_size=224, num_workers=2):
     # Augmentasi training
     train_transform = transforms.Compose([
+        transforms.RandomResizedCrop(224),
         transforms.RandomHorizontalFlip(),
-        transforms.RandomVerticalFlip(),
-        transforms.RandomRotation(degrees=(20)),
+        transforms.RandomRotation(20),
         transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
-        transforms.RandomResizedCrop(image_size, scale=(0.8, 1.0)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225]),
+        transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),
+    transforms.ToTensor(),   # <-- WAJIB sebelum Normalize
+    transforms.Normalize([0.485, 0.456, 0.406],
+                         [0.229, 0.224, 0.225])
     ])
 
     # Augmentasi validasi lebih ringan
