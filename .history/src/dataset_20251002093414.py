@@ -4,7 +4,7 @@ from torchvision import datasets, transforms
 import numpy as np
 from collections import Counter
 
-def get_dataloaders(data_dir, batch_size=32, image_size=224, num_workers=4):
+def get_dataloaders(data_dir, batch_size=32, image_size=224, num_workers=2):
     # Augmentasi training
     train_transform = transforms.Compose([
         transforms.RandomHorizontalFlip(),

@@ -109,7 +109,7 @@ if __name__ == '__main__':
 
     model = create_model(num_classes=NUM_CLASSES, image_size=IMAGE_SIZE).to(DEVICE)
 
-    criterion = nn.CrossEntropyLoss(label_smoothing=0.1).to(DEVICE)
+    criterion = nn.CrossEntropyLoss(label_smoothing=0.2).to(DEVICE)
     print("Menggunakan CrossEntropyLoss dengan Label Smoothing (0.1).")
 
     # --- TAHAP 1: FREEZE BACKBONE, LATIH HEAD ---

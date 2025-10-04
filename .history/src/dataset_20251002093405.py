@@ -4,13 +4,13 @@ from torchvision import datasets, transforms
 import numpy as np
 from collections import Counter
 
-def get_dataloaders(data_dir, batch_size=32, image_size=224, num_workers=4):
+def get_dataloaders(data_dir, batch_size=32, image_size=224, num_workers=2):
     # Augmentasi training
     train_transform = transforms.Compose([
         transforms.RandomHorizontalFlip(),
         transforms.RandomVerticalFlip(),
         transforms.RandomRotation(degrees=(45)),
-        transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.1),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
         transforms.RandomResizedCrop(image_size, scale=(0.8, 1.0)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],
